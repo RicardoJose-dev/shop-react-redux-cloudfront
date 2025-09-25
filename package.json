@@ -24,7 +24,7 @@
     "cloudfront:update:build:deploy:nc": "npm run cloudfront:setup && npm run cloudfront:build:deploy:nc",
     "serverless:remove": "sls remove",
     "synthtemplate": "cp -a ./dist/. ./infra/resources/build/ && cd infra && cdk synth > MyStack.template.yaml",
-    "deploystack": "cd infra && cdk deploy"
+    "deploystack": "cd infra && cdk deploy --all"
   },
   "dependencies": {
     "@emotion/react": "^11.9.3",
