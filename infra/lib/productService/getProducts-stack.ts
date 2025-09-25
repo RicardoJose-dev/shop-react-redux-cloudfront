@@ -82,7 +82,18 @@ export class GetProductsLambdaStack extends cdk.Stack {
         requestTemplates: {
           "application/json": `{ "productId": "$input.params('productId')" }`,
         },
-        integrationResponses,
+        integrationResponses: [
+          ...integrationResponses,
+          {
+            selectionPattern: "^Error.*",
+            statusCode: "404",
+            responseTemplates: {
+              "application/json": JSON.stringify({
+                error: "Product not found",
+              }),
+            },
+          },
+        ],
         proxy: false,
       }
     )
@@ -98,7 +109,18 @@ export class GetProductsLambdaStack extends cdk.Stack {
     const productByIdResource = productsResource.addResource("{productId}")
 
     productByIdResource.addMethod("GET", getProductsByIdLambdaIntegration, {
-      methodResponses,
+      methodResponses: [
+        ...methodResponses,
+        {
+          statusCode: "404",
+          responseParameters: {
+            "method.response.header.Content-Type": true,
+            "method.response.header.Access-Control-Allow-Origin": true,
+            "method.response.header.Access-Control-Allow-Methods": true,
+            "method.response.header.Access-Control-Allow-Headers": true,
+          },
+        },
+      ],
     })
 
     productByIdResource.addCorsPreflight(preFlightOptions)
