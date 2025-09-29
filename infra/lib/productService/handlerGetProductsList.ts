@@ -1,14 +1,8 @@
 import { Handler } from "aws-lambda"
-import {
-  DynamoDBClient,
-  ScanCommand,
-  QueryCommand,
-} from "@aws-sdk/client-dynamodb"
-
-const dynamoDB = new DynamoDBClient({ region: process.env.AWS_REGION })
-
-const productTableName = process.env.PRODUCT_TABLE_NAME as string
-const stockTableName = process.env.STOCK_TABLE_NAME as string
+import { ScanCommand } from "@aws-sdk/client-dynamodb"
+import dynamoDB from "./utils/dbClient"
+import { productTableName } from "./utils/constants"
+import { getProductStock } from "./utils/getProductStock"
 
 const getProducts = async () => {
   const params = {
@@ -19,21 +13,6 @@ const getProducts = async () => {
   const response = await dynamoDB.send(command)
 
   return response.Items || []
-}
-
-const getProductStock = async (productId: string) => {
-  const params = {
-    TableName: stockTableName,
-    KeyConditionExpression: "product_id = :productId",
-    ExpressionAttributeValues: {
-      ":productId": { S: productId },
-    },
-  }
-
-  const command = new QueryCommand(params)
-  const response = await dynamoDB.send(command)
-
-  return Number(response.Items?.[0]?.count?.N) || 0
 }
 
 export const main: Handler = async () => {

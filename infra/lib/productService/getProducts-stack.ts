@@ -75,6 +75,10 @@ export class GetProductsLambdaStack extends cdk.Stack {
         timeout: cdk.Duration.seconds(5),
         handler: "handlerGetProductsById.main",
         code: lambda.Code.fromAsset(path.join(__dirname, "./")),
+        environment: {
+          PRODUCT_TABLE_NAME: productTableName,
+          STOCK_TABLE_NAME: stockTableNAme,
+        },
       }
     )
 
@@ -83,6 +87,8 @@ export class GetProductsLambdaStack extends cdk.Stack {
       "ImportedStackTable",
       cdk.Fn.importValue("StockTableArn")
     )
+
+    productsTable.grantReadData(getProductsByIdLambdaFunction)
 
     stackTable.grantReadData(getProductsByIdLambdaFunction)
     stackTable.grantReadData(getProductsListLambdaFunction)
