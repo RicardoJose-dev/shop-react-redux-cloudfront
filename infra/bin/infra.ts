@@ -3,6 +3,7 @@ import * as cdk from "aws-cdk-lib"
 import { DeployWebAppStack } from "../lib/deploy-web-app-stack"
 import { ProductStack } from "../lib/models/product/ProductStack"
 import { StockStack } from "../lib/models/stock/StockStack"
+import { CreateProductLambdaStack } from "../lib/productService/createProduct-stack"
 import { GetProductsLambdaStack } from "../lib/productService/getProducts-stack"
 
 const app = new cdk.App()
@@ -24,4 +25,15 @@ new ProductStack(app, "ProductStack", {})
 
 new StockStack(app, "StockStack", {})
 
-new GetProductsLambdaStack(app, "GetProductsLambdaStack", {})
+const getProductsStack = new GetProductsLambdaStack(
+  app,
+  "GetProductsLambdaStack",
+  {}
+)
+
+new CreateProductLambdaStack(
+  app,
+  "CreateProductLambdaStack",
+  {},
+  getProductsStack.productsResource
+)

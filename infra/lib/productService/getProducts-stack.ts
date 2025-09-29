@@ -6,8 +6,7 @@ import * as path from "path"
 import { Construct } from "constructs"
 import { tableName as productTableName } from "../models/product/ProductStack"
 import { tableName as stockTableNAme } from "../models/stock/StockStack"
-
-const URL_ORIGIN = "https://dr7vf68s6by3z.cloudfront.net"
+import { URL_ORIGIN } from "./utils/constants"
 
 const integrationResponses = [
   {
@@ -39,6 +38,8 @@ const preFlightOptions = {
 }
 
 export class GetProductsLambdaStack extends cdk.Stack {
+  public readonly productsResource: apigateway.IResource
+
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props)
 
@@ -128,15 +129,18 @@ export class GetProductsLambdaStack extends cdk.Stack {
       }
     )
 
-    const productsResource = api.root.addResource("products")
+    this.productsResource = api.root.addResource("products")
 
-    productsResource.addMethod("GET", getProductsLambdaIntegration, {
+    this.productsResource.addMethod("GET", getProductsLambdaIntegration, {
       methodResponses,
     })
 
-    productsResource.addCorsPreflight(preFlightOptions)
+    this.productsResource.addCorsPreflight({
+      ...preFlightOptions,
+      allowMethods: ["GET", "POST"],
+    })
 
-    const productByIdResource = productsResource.addResource("{productId}")
+    const productByIdResource = this.productsResource.addResource("{productId}")
 
     productByIdResource.addMethod("GET", getProductsByIdLambdaIntegration, {
       methodResponses: [
