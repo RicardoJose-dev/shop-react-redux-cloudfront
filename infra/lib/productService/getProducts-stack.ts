@@ -1,10 +1,12 @@
 import * as lambda from "aws-cdk-lib/aws-lambda"
 import * as apigateway from "aws-cdk-lib/aws-apigateway"
+import * as dynamodb from "aws-cdk-lib/aws-dynamodb"
 import * as cdk from "aws-cdk-lib"
 import * as path from "path"
 import { Construct } from "constructs"
-
-const URL_ORIGIN = "https://dr7vf68s6by3z.cloudfront.net"
+import { tableName as productTableName } from "../models/product/ProductStack"
+import { tableName as stockTableNAme } from "../models/stock/StockStack"
+import { URL_ORIGIN } from "./utils/constants"
 
 const integrationResponses = [
   {
@@ -36,6 +38,8 @@ const preFlightOptions = {
 }
 
 export class GetProductsLambdaStack extends cdk.Stack {
+  public readonly productsResource: apigateway.IResource
+
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props)
 
@@ -48,8 +52,20 @@ export class GetProductsLambdaStack extends cdk.Stack {
         timeout: cdk.Duration.seconds(5),
         handler: "handlerGetProductsList.main",
         code: lambda.Code.fromAsset(path.join(__dirname, "./")),
+        environment: {
+          PRODUCT_TABLE_NAME: productTableName,
+          STOCK_TABLE_NAME: stockTableNAme,
+        },
       }
     )
+
+    const productsTable = dynamodb.Table.fromTableArn(
+      this,
+      "ImportedProductTable",
+      cdk.Fn.importValue("ProductTableArn")
+    )
+
+    productsTable.grantReadData(getProductsListLambdaFunction)
 
     const getProductsByIdLambdaFunction = new lambda.Function(
       this,
@@ -58,10 +74,25 @@ export class GetProductsLambdaStack extends cdk.Stack {
         runtime: lambda.Runtime.NODEJS_20_X,
         memorySize: 1024,
         timeout: cdk.Duration.seconds(5),
-        handler: "hanlderGetProductsById.main",
+        handler: "handlerGetProductsById.main",
         code: lambda.Code.fromAsset(path.join(__dirname, "./")),
+        environment: {
+          PRODUCT_TABLE_NAME: productTableName,
+          STOCK_TABLE_NAME: stockTableNAme,
+        },
       }
     )
+
+    const stackTable = dynamodb.Table.fromTableArn(
+      this,
+      "ImportedStackTable",
+      cdk.Fn.importValue("StockTableArn")
+    )
+
+    productsTable.grantReadData(getProductsByIdLambdaFunction)
+
+    stackTable.grantReadData(getProductsByIdLambdaFunction)
+    stackTable.grantReadData(getProductsListLambdaFunction)
 
     const api = new apigateway.RestApi(this, "getProducts-api", {
       restApiName: "getProducts API Gateway",
@@ -98,15 +129,18 @@ export class GetProductsLambdaStack extends cdk.Stack {
       }
     )
 
-    const productsResource = api.root.addResource("products")
+    this.productsResource = api.root.addResource("products")
 
-    productsResource.addMethod("GET", getProductsLambdaIntegration, {
+    this.productsResource.addMethod("GET", getProductsLambdaIntegration, {
       methodResponses,
     })
 
-    productsResource.addCorsPreflight(preFlightOptions)
+    this.productsResource.addCorsPreflight({
+      ...preFlightOptions,
+      allowMethods: ["GET", "POST"],
+    })
 
-    const productByIdResource = productsResource.addResource("{productId}")
+    const productByIdResource = this.productsResource.addResource("{productId}")
 
     productByIdResource.addMethod("GET", getProductsByIdLambdaIntegration, {
       methodResponses: [
