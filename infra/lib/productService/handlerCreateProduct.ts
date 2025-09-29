@@ -5,6 +5,7 @@ import dynamoDB from "./utils/dbClient"
 
 export async function main(event: any) {
   try {
+    console.log(event)
     const { title, description, price, count } = event
 
     if (!title || !description || !price) {
