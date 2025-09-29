@@ -1,8 +1,11 @@
 import * as lambda from "aws-cdk-lib/aws-lambda"
 import * as apigateway from "aws-cdk-lib/aws-apigateway"
+import * as dynamodb from "aws-cdk-lib/aws-dynamodb"
 import * as cdk from "aws-cdk-lib"
 import * as path from "path"
 import { Construct } from "constructs"
+import { tableName as productTableName } from "../models/product/ProductStack"
+import { tableName as stockTableNAme } from "../models/stock/StockStack"
 
 const URL_ORIGIN = "https://dr7vf68s6by3z.cloudfront.net"
 
@@ -48,8 +51,20 @@ export class GetProductsLambdaStack extends cdk.Stack {
         timeout: cdk.Duration.seconds(5),
         handler: "handlerGetProductsList.main",
         code: lambda.Code.fromAsset(path.join(__dirname, "./")),
+        environment: {
+          PRODUCT_TABLE_NAME: productTableName,
+          STOCK_TABLE_NAME: stockTableNAme,
+        },
       }
     )
+
+    const productsTable = dynamodb.Table.fromTableArn(
+      this,
+      "ImportedProductTable",
+      cdk.Fn.importValue("ProductTableArn")
+    )
+
+    productsTable.grantReadData(getProductsListLambdaFunction)
 
     const getProductsByIdLambdaFunction = new lambda.Function(
       this,
@@ -58,10 +73,19 @@ export class GetProductsLambdaStack extends cdk.Stack {
         runtime: lambda.Runtime.NODEJS_20_X,
         memorySize: 1024,
         timeout: cdk.Duration.seconds(5),
-        handler: "hanlderGetProductsById.main",
+        handler: "handlerGetProductsById.main",
         code: lambda.Code.fromAsset(path.join(__dirname, "./")),
       }
     )
+
+    const stackTable = dynamodb.Table.fromTableArn(
+      this,
+      "ImportedStackTable",
+      cdk.Fn.importValue("StockTableArn")
+    )
+
+    stackTable.grantReadData(getProductsByIdLambdaFunction)
+    stackTable.grantReadData(getProductsListLambdaFunction)
 
     const api = new apigateway.RestApi(this, "getProducts-api", {
       restApiName: "getProducts API Gateway",

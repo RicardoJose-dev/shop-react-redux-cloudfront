@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 import * as cdk from "aws-cdk-lib"
 import { DeployWebAppStack } from "../lib/deploy-web-app-stack"
+import { ProductStack } from "../lib/models/product/ProductStack"
+import { StockStack } from "../lib/models/stock/StockStack"
 import { GetProductsLambdaStack } from "../lib/productService/getProducts-stack"
 
 const app = new cdk.App()
@@ -17,5 +19,9 @@ new DeployWebAppStack(app, "DeployWebAppStack", {
   // env: { account: '123456789012', region: 'us-east-1' },
   /* For more information, see https://docs.aws.amazon.com/cdk/latest/guide/environments.html */
 })
+
+new ProductStack(app, "ProductStack", {})
+
+new StockStack(app, "StockStack", {})
 
 new GetProductsLambdaStack(app, "GetProductsLambdaStack", {})
