@@ -60,6 +60,33 @@ export class ImportServiceStack extends cdk.Stack {
       }),
     })
 
+    const importFileParserLambdaFunction = new lambda.Function(
+      this,
+      "importFileParser",
+      {
+        runtime: lambda.Runtime.NODEJS_20_X,
+        memorySize: 1024,
+        timeout: cdk.Duration.seconds(5),
+        handler: "handlerImportFileParser.main",
+        code: lambda.Code.fromAsset(path.join(__dirname, "./")),
+        environment: {
+          BUCKET_NAME: importBucket.bucketName,
+        },
+      }
+    )
+
+    importBucket.grantReadWrite(importFileParserLambdaFunction)
+
+    importBucket.addEventNotification(
+      aws_s3.EventType.OBJECT_CREATED,
+      new cdk.aws_s3_notifications.LambdaDestination(
+        importFileParserLambdaFunction
+      ),
+      {
+        prefix: "uploaded/",
+      }
+    )
+
     const importProductsFileLambdaFunction = new lambda.Function(
       this,
       "importProductsFile",
