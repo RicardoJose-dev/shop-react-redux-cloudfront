@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import * as cdk from "aws-cdk-lib"
 import { DeployWebAppStack } from "../lib/deploy-web-app-stack"
+import { ImportServiceStack } from "../lib/ImportService/import-service-stack"
 import { ProductStack } from "../lib/models/product/ProductStack"
 import { StockStack } from "../lib/models/stock/StockStack"
 import { CreateProductLambdaStack } from "../lib/productService/createProduct-stack"
@@ -37,3 +38,5 @@ new CreateProductLambdaStack(
   {},
   getProductsStack.productsResource
 )
+
+new ImportServiceStack(app, "ImportServiceStack", {})

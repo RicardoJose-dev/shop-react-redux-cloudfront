@@ -1,6 +1,7 @@
 import React from "react";
 import Typography from "@mui/material/Typography";
 import Box from "@mui/material/Box";
+import axios from "axios";
 
 type CSVFileImportProps = {
   url: string;
@@ -22,26 +23,45 @@ export default function CSVFileImport({ url, title }: CSVFileImportProps) {
     setFile(undefined);
   };
 
-  const uploadFile = async () => {
+  const uploadFile = async (file: File | undefined) => {
+    if (file === undefined) {
+      return;
+    }
+
     console.log("uploadFile to", url);
 
-    // Get the presigned URL
-    // const response = await axios({
-    //   method: "GET",
-    //   url,
-    //   params: {
-    //     name: encodeURIComponent(file.name),
-    //   },
-    // });
-    // console.log("File to upload: ", file.name);
-    // console.log("Uploading to: ", response.data);
-    // const result = await fetch(response.data, {
-    //   method: "PUT",
-    //   body: file,
-    // });
-    // console.log("Result: ", result);
-    // setFile("");
+    try {
+      const responseData = await axios({
+        method: "GET",
+        url,
+        params: {
+          fileName: encodeURIComponent(file.name),
+        },
+      }).then(({ data }) => data)
+
+      const { body, statusCode } = responseData;
+      const { signedUrl } = JSON.parse(body);
+  
+      if (statusCode !== 200) {
+        throw new Error('Error getting signed URL')
+      }
+
+      console.log("File to upload: ", file.name);
+      console.log("Uploading to: ", signedUrl);
+  
+      const result = await fetch(signedUrl, {
+        method: "PUT",
+        body: file,
+      });
+  
+      console.log("Result: ", result);
+    } catch (err) {
+      console.log(err);
+    } finally {
+      setFile(undefined);
+    }
   };
+
   return (
     <Box>
       <Typography variant="h6" gutterBottom>
@@ -52,7 +72,7 @@ export default function CSVFileImport({ url, title }: CSVFileImportProps) {
       ) : (
         <div>
           <button onClick={removeFile}>Remove file</button>
-          <button onClick={uploadFile}>Upload file</button>
+          <button onClick={() => uploadFile(file)}>Upload file</button>
         </div>
       )}
     </Box>
