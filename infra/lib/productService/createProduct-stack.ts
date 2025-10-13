@@ -6,7 +6,7 @@ import * as path from "path"
 import { Construct } from "constructs"
 import { tableName as productTableName } from "../models/product/ProductStack"
 import { tableName as stockTableNAme } from "../models/stock/StockStack"
-import { URL_ORIGIN } from "./utils/constants"
+import { URL_ORIGIN } from "../constants"
 
 const integrationResponses = [
   {
