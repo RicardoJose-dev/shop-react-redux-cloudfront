@@ -1,7 +1,9 @@
+import { SNSClient, PublishCommand } from "@aws-sdk/client-sns"
 import { LambdaClient, InvokeCommand } from "@aws-sdk/client-lambda"
 import { SQSRecord, SQSEvent } from "aws-lambda"
 
 const lambdaClient = new LambdaClient({ region: "us-east-1" })
+const snsClient = new SNSClient({ region: "us-east-1" })
 
 async function getRecordPromise(record: SQSRecord) {
   try {
@@ -13,20 +15,20 @@ async function getRecordPromise(record: SQSRecord) {
       InvocationType: "RequestResponse",
     })
 
-    return lambdaClient
-      .send(command)
-      .then((response) => {
-        console.log("Lambda invoked successfully:", record.messageId, response)
-      })
-      .catch((err) => {
-        console.error(
-          "Lambda invocation failed for record:",
-          record.messageId,
-          err
-        )
-      })
+    await lambdaClient.send(command)
+
+    const snsCommand = new PublishCommand({
+      TopicArn: process.env.CREATE_PRODUCT_TOPIC_ARN,
+      Subject: "New Product Created",
+      Message: JSON.stringify({
+        name: payload.name,
+        price: payload.price,
+      }),
+    })
+
+    await snsClient.send(snsCommand)
   } catch (err) {
-    console.error("Error processing SQS message:", record.messageId, err)
+    console.error("An error ocurred:", record.messageId, err)
   }
 }
 
