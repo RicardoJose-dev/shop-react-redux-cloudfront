@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import * as cdk from "aws-cdk-lib"
+import { CatalogBatchStack } from "../lib/catalogBatchService/catalog-batch-stack"
 import { DeployWebAppStack } from "../lib/deploy-web-app-stack"
 import { ImportServiceStack } from "../lib/ImportService/import-service-stack"
 import { ProductStack } from "../lib/models/product/ProductStack"
@@ -38,5 +39,7 @@ new CreateProductLambdaStack(
   {},
   getProductsStack.productsResource
 )
+
+new CatalogBatchStack(app, "CatalogBatchStack", {})
 
 new ImportServiceStack(app, "ImportServiceStack", {})
