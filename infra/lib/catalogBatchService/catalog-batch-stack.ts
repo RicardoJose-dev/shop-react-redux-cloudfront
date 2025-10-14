@@ -20,6 +20,19 @@ export class CatalogBatchStack extends cdk.Stack {
       new subscriptions.EmailSubscription("testrjgdum@gmail.com")
     )
 
+    const filteredCreateProduct = new subscriptions.EmailSubscription(
+      "filtertestrjgdum@gmail.com",
+      {
+        filterPolicy: {
+          price: sns.SubscriptionFilter.numericFilter({
+            greaterThan: 49000,
+          }),
+        },
+      }
+    )
+
+    createProductTopic.addSubscription(filteredCreateProduct)
+
     const lambdaFunction = new lambda.Function(this, "catalogBatchProcess", {
       runtime: lambda.Runtime.NODEJS_20_X,
       memorySize: 1024,

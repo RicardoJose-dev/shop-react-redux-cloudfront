@@ -24,6 +24,12 @@ async function getRecordPromise(record: SQSRecord) {
         name: payload.name,
         price: payload.price,
       }),
+      MessageAttributes: {
+        price: {
+          DataType: "Number",
+          StringValue: payload.price.toString(),
+        },
+      },
     })
 
     await snsClient.send(snsCommand)
