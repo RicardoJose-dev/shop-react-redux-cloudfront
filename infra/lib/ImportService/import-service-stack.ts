@@ -3,6 +3,7 @@ import * as apigateway from "aws-cdk-lib/aws-apigateway"
 import * as cdk from "aws-cdk-lib"
 import * as path from "path"
 import * as cr from "aws-cdk-lib/custom-resources"
+import * as iam from "aws-cdk-lib/aws-iam"
 import { Construct } from "constructs"
 import { aws_s3, RemovalPolicy } from "aws-cdk-lib"
 import { URL_ORIGIN } from "../constants"
@@ -71,8 +72,16 @@ export class ImportServiceStack extends cdk.Stack {
         code: lambda.Code.fromAsset(path.join(__dirname, "./")),
         environment: {
           BUCKET_NAME: importBucket.bucketName,
+          SQS_QUEUE_NAME: cdk.Fn.importValue("SQSQueueName"),
         },
       }
+    )
+
+    importFileParserLambdaFunction.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ["sqs:GetQueueUrl", "sqs:SendMessage"],
+        resources: [cdk.Fn.importValue("SQSQueueArn")],
+      })
     )
 
     importBucket.grantReadWrite(importFileParserLambdaFunction)

@@ -1,7 +1,13 @@
-import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3"
 import csvParser from "csv-parser"
 import { Readable } from "stream"
+import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3"
+import {
+  SQSClient,
+  GetQueueUrlCommand,
+  SendMessageCommand,
+} from "@aws-sdk/client-sqs"
 
+const sqsClient = new SQSClient({ region: "us-east-1" })
 const s3Client = new S3Client({ region: "us-east-1" })
 
 const webStreamToNodeStream = (webStream: ReadableStream) => {
@@ -22,6 +28,27 @@ const webStreamToNodeStream = (webStream: ReadableStream) => {
     },
   })
 }
+const getSQSQueue = () => {
+  const getUrlCommand = new GetQueueUrlCommand({
+    QueueName: process.env.SQS_QUEUE_NAME,
+  })
+  return sqsClient.send(getUrlCommand)
+}
+
+const sendMessageToSQS = async (messageBody: object) => {
+  try {
+    const sqsQueue = await getSQSQueue()
+
+    const command = new SendMessageCommand({
+      QueueUrl: sqsQueue.QueueUrl,
+      MessageBody: JSON.stringify(messageBody),
+    })
+
+    await sqsClient.send(command)
+  } catch (error) {
+    console.error("Error sending message to SQS:", error)
+  }
+}
 
 const processCsvFile = async (bucketName: string, key: string) => {
   const getObject = new GetObjectCommand({
@@ -37,8 +64,12 @@ const processCsvFile = async (bucketName: string, key: string) => {
   return new Promise((resolve, reject) => {
     nodeStream
       .pipe(csvParser())
-      .on("data", (row) => {
-        console.log("Parsed Row:", row)
+      .on("data", async (row) => {
+        try {
+          await sendMessageToSQS(row)
+        } catch (error) {
+          console.error("Error processing row:", row, error)
+        }
       })
       .on("end", () => {
         console.log("Finished parsing CSV file.")

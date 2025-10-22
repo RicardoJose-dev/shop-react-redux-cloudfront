@@ -56,6 +56,16 @@ export class CreateProductLambdaStack extends cdk.Stack {
       }
     )
 
+    new cdk.CfnOutput(this, "CreateProductLambdaName", {
+      value: createProductLambdaFunction.functionName,
+      exportName: "CreateProductLambdaName",
+    })
+
+    new cdk.CfnOutput(this, "CreateProductLambdaArn", {
+      value: createProductLambdaFunction.functionArn,
+      exportName: "CreateProductLambdaArn",
+    })
+
     const productsTable = dynamodb.Table.fromTableArn(
       this,
       "ImportedProductTable",
