@@ -13,6 +13,18 @@ const generateSignedURL = async (objectKey: string) => {
 }
 
 export const main = async (event: any) => {
+  if (event.httpMethod === "OPTIONS") {
+    return {
+      statusCode: 200,
+      headers: {
+        "Access-Control-Allow-Origin": process.env.URL_ORIGIN,
+        "Access-Control-Allow-Headers": "Content-Type,Authorization",
+        "Access-Control-Allow-Methods": "POST,OPTIONS",
+      },
+      body: null,
+    }
+  }
+
   try {
     const { fileName } = event
 
