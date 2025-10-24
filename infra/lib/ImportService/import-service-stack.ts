@@ -10,12 +10,13 @@ import { URL_ORIGIN } from "../constants"
 
 const corsHeaders = {
   "method.response.header.Access-Control-Allow-Origin": `'${URL_ORIGIN}'`,
-  "method.response.header.Access-Control-Allow-Methods": "'GET'",
+  "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,GET'",
   "method.response.header.Access-Control-Allow-Headers":
     "'Content-Type,Authorization'",
 }
 
 const responseParameters = {
+  ...corsHeaders,
   "method.response.header.Content-Type": true,
   "method.response.header.Access-Control-Allow-Origin": true,
   "method.response.header.Access-Control-Allow-Methods": true,
@@ -107,6 +108,7 @@ export class ImportServiceStack extends cdk.Stack {
         code: lambda.Code.fromAsset(path.join(__dirname, "./")),
         environment: {
           BUCKET_NAME: importBucket.bucketName,
+          URL_ORIGIN,
         },
       }
     )
@@ -144,6 +146,25 @@ export class ImportServiceStack extends cdk.Stack {
       }
     )
 
+    const basicAuthenticationLambdaArn = cdk.Fn.importValue(
+      "basicAuthenticationLambdaArn"
+    )
+
+    const basicAuthenticationLambda = lambda.Function.fromFunctionArn(
+      this,
+      "basicAuthenticationLambda",
+      basicAuthenticationLambdaArn
+    )
+
+    const lambdaAuthorizer = new apigateway.RequestAuthorizer(
+      this,
+      "lambdaAuthorizer",
+      {
+        handler: basicAuthenticationLambda,
+        identitySources: [apigateway.IdentitySource.header("Authorization")],
+      }
+    )
+
     const api = new apigateway.RestApi(this, "import-api", {
       restApiName: "import API Gateway",
       description:
@@ -151,6 +172,33 @@ export class ImportServiceStack extends cdk.Stack {
     })
 
     const importResource = api.root.addResource("import")
+
+    importResource.addMethod(
+      "OPTIONS",
+      new apigateway.MockIntegration({
+        integrationResponses: [
+          {
+            statusCode: "200",
+            responseParameters: corsHeaders,
+            responseTemplates: {
+              "application/json": "{}",
+            },
+          },
+        ],
+        passthroughBehavior: apigateway.PassthroughBehavior.NEVER,
+        requestTemplates: {
+          "application/json": '{"statusCode": 200}',
+        },
+      }),
+      {
+        methodResponses: [
+          {
+            statusCode: "200",
+            responseParameters,
+          },
+        ],
+      }
+    )
 
     importResource.addMethod("GET", importProductsLambdaIntegration, {
       methodResponses: [
@@ -167,6 +215,8 @@ export class ImportServiceStack extends cdk.Stack {
           responseParameters,
         },
       ],
+      authorizer: lambdaAuthorizer,
+      authorizationType: apigateway.AuthorizationType.CUSTOM,
     })
   }
 }
